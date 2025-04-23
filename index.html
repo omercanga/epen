@@ -14,6 +14,7 @@
       canvas {
         display: block;
         background: transparent;
+        pointer-events: auto;
       }
       #toolbar {
         position: fixed;
@@ -28,8 +29,13 @@
         gap: 10px;
         align-items: center;
         z-index: 1000;
-        backdrop-filter: blur(5px);
         white-space: nowrap;
+        pointer-events: auto !important;
+        transition: all 0.3s ease;
+      }
+      #toolbar.hidden {
+        opacity: 0;
+        pointer-events: none !important;
       }
       .tool-group {
         display: flex;
@@ -50,6 +56,7 @@
         display: flex;
         align-items: center;
         gap: 5px;
+        pointer-events: auto !important;
       }
       button:hover {
         background: #f0f0f0;
@@ -82,6 +89,10 @@
         font-size: 12px;
         z-index: 9999;
         pointer-events: none;
+        transition: all 0.3s ease;
+      }
+      #status-bar.passive {
+        opacity: 0;
       }
       #status-bar b {
         color: #00ff00;
@@ -103,6 +114,12 @@
         gap: 10px;
         align-items: center;
         z-index: 9999;
+        pointer-events: auto !important;
+        transition: all 0.3s ease;
+      }
+      #titleBar.passive {
+        background: rgba(255, 255, 255, 0.3);
+        box-shadow: none;
       }
       #titleBar, #closeButton {
         pointer-events: auto !important;
@@ -116,21 +133,25 @@
         gap: 15px;
         font-weight: bold;
         text-shadow: 0 0 1px rgba(255,0,0,0.2);
+        pointer-events: auto !important;
       }
       .shortcut-key {
         background: rgba(255, 51, 51, 0.1);
         padding: 2px 6px;
         border-radius: 3px;
         border: 1px solid rgba(255, 51, 51, 0.2);
+        pointer-events: auto !important;
       }
       .shortcut-divider {
         color: #999;
         margin: 0 5px;
         font-weight: normal;
+        pointer-events: auto !important;
       }
       button .shortcut-text {
         display: inline-block;
         vertical-align: middle;
+        pointer-events: auto !important;
       }
       #closeButton {
         background: #ff4444;
@@ -157,9 +178,9 @@
     <div id="titleBar">
       <span>ePen</span>
       <span class="shortcut-info">
-        <span>Çizim: <span class="shortcut-key">Ctrl+Shift+D</span></span>
+        <span>Çizim: <span class="shortcut-key" id="drawingShortcut">Ctrl+Shift+D</span></span>
         <span class="shortcut-divider">|</span>
-        <span>Kapat: <span class="shortcut-key">Ctrl+Q</span></span>
+        <span>Kapat: <span class="shortcut-key" id="closeShortcut">Ctrl+Q</span></span>
       </span>
       <button id="closeButton">✕</button>
     </div>
@@ -281,15 +302,6 @@
         }`;
       }
 
-      // Set canvas size
-      function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        redrawCanvas();
-      }
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-
       // Toggle draw mode
       function toggleDrawMode(isActive) {
         isDrawMode = isActive;
@@ -297,7 +309,25 @@
         const shortcut = ' (Ctrl+Shift+D)';
         statusBar.innerHTML = `${translations[currentLanguage].drawMode}: <b>${status}</b>${shortcut}`;
         toolbar.classList.toggle('hidden', !isDrawMode);
+        document.getElementById('titleBar').classList.toggle('passive', !isDrawMode);
+        statusBar.classList.toggle('passive', !isDrawMode);
       }
+
+      // Initialize canvas with transparent background
+      function initCanvas() {
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        saveState();
+      }
+
+      // Set canvas size and initialize
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        initCanvas();
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
 
       document.getElementById('toggleDrawMode').addEventListener('click', () => {
         ipcRenderer.send('toggle-drawing-mode');
@@ -314,8 +344,49 @@
 
       // Handle Ctrl+Q shortcut
       document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'q') {
-          ipcRenderer.send('close-window');
+        // Check for both Ctrl and Command (Meta) key
+        if (e.ctrlKey || e.metaKey) {
+          if (e.key === 'z') {
+            e.preventDefault();
+            undo();
+          } else if (e.key === 'y') {
+            e.preventDefault();
+            redo();
+          } else if (e.key === 'q') {
+            e.preventDefault();
+            window.close();
+          } else if (e.key === 'd') {
+            e.preventDefault();
+            ipcRenderer.send('toggle-drawing-mode');
+          }
+        } else {
+          switch (e.key.toLowerCase()) {
+            case 'p':
+              currentTool = 'pen';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('penTool').classList.add('active');
+              break;
+            case 'e':
+              currentTool = 'eraser';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('eraserTool').classList.add('active');
+              break;
+            case 'l':
+              currentTool = 'line';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('lineTool').classList.add('active');
+              break;
+            case 'r':
+              currentTool = 'rectangle';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('rectangleTool').classList.add('active');
+              break;
+            case 'c':
+              currentTool = 'circle';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('circleTool').classList.add('active');
+              break;
+          }
         }
       });
 
@@ -469,6 +540,24 @@
 
       // Save initial state
       saveState();
+
+      // Update shortcuts based on OS
+      function updateShortcuts() {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const drawingShortcut = document.getElementById('drawingShortcut');
+        const closeShortcut = document.getElementById('closeShortcut');
+        
+        if (isMac) {
+          drawingShortcut.textContent = '⌘D';
+          closeShortcut.textContent = '⌘Q';
+        } else {
+          drawingShortcut.textContent = 'Ctrl+Shift+D';
+          closeShortcut.textContent = 'Ctrl+Q';
+        }
+      }
+
+      // Call updateShortcuts when the page loads
+      document.addEventListener('DOMContentLoaded', updateShortcuts);
     </script>
   </body>
 </html> 
