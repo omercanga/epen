@@ -8,33 +8,41 @@ ePen, ekran üzerinde çizim yapmanızı sağlayan çok platformlu bir uygulamad
 - 📐 Şekil çizimi (çizgi, dikdörtgen, daire)
 - 🎨 Renk seçimi ve özel renk paleti
 - ↩️ Geri alma/ileri alma desteği
-- 🌐 Çoklu dil desteği
+- 🌐 Çoklu dil desteği (Türkçe, İngilizce)
 - 💻 Tüm platformlarda çalışma
 - ⌨️ Klavye kısayolları
+- 🖥️ Çoklu pencere desteği
+- 🎯 Hassas çizim kontrolü
+- 📱 Dokunmatik ekran desteği
 
 ## Klavye Kısayolları
 
 - `Ctrl + Shift + D`: Çizim modunu aç/kapat
 - `Ctrl + Q`: Uygulamayı kapat
+- `Ctrl + Z`: Son işlemi geri al
+- `Ctrl + Y`: Son işlemi ileri al
+- `Ctrl + S`: Çizimi kaydet
+- `Ctrl + O`: Çizim aç
+- `Ctrl + N`: Yeni çizim
 
 ## Kurulum
 
 ### Windows
-1. [Releases](https://github.com/yourusername/epen/releases) sayfasından `ePen-Setup.exe` dosyasını indirin
+1. [Releases](https://github.com/omercanga/epen/releases) sayfasından `ePen-Setup.exe` dosyasını indirin
 2. İndirilen dosyayı çalıştırın ve kurulum adımlarını takip edin
 
 ### macOS
-1. [Releases](https://github.com/yourusername/epen/releases) sayfasından `ePen.dmg` dosyasını indirin
+1. [Releases](https://github.com/omercanga/epen/releases) sayfasından `ePen.dmg` dosyasını indirin
 2. DMG dosyasını açın ve ePen'i Applications klasörüne sürükleyin
 
 ### Linux
-1. [Releases](https://github.com/yourusername/epen/releases) sayfasından `ePen.AppImage` dosyasını indirin
+1. [Releases](https://github.com/omercanga/epen/releases) sayfasından `ePen.AppImage` dosyasını indirin
 2. Dosyayı çalıştırılabilir yapın: `chmod +x ePen.AppImage`
 3. Uygulamayı çalıştırın: `./ePen.AppImage`
 
 ### Android
 1. Google Play Store'dan "ePen" uygulamasını indirin
-2. Ya da APK dosyasını [Releases](https://github.com/yourusername/epen/releases) sayfasından indirip kurun
+2. Ya da APK dosyasını [Releases](https://github.com/omercanga/epen/releases) sayfasından indirip kurun
 
 ## Geliştirme
 
@@ -49,7 +57,7 @@ ePen, ekran üzerinde çizim yapmanızı sağlayan çok platformlu bir uygulamad
 
 ```bash
 # Depoyu klonlayın
-git clone https://github.com/yourusername/epen.git
+git clone https://github.com/omercanga/epen.git
 cd epen
 
 # Bağımlılıkları yükleyin
@@ -63,6 +71,19 @@ npm run build:windows  # Windows için
 npm run build:mac     # macOS için
 npm run build:linux   # Linux için
 npm run build:android # Android için
+```
+
+## Proje Yapısı
+
+```
+epen/
+├── main.js           # Ana uygulama dosyası
+├── renderer.js       # Renderer işlemleri
+├── index.html        # Ana pencere HTML
+├── styles.css        # Stil dosyası
+├── translations.js   # Çeviri dosyası
+├── package.json      # Proje bağımlılıkları
+└── README.md         # Proje dokümantasyonu
 ```
 
 ## Katkıda Bulunma
@@ -89,33 +110,41 @@ ePen is a cross-platform application that allows you to draw on your screen. It 
 - 📐 Shape drawing (line, rectangle, circle)
 - 🎨 Color selection and custom color palette
 - ↩️ Undo/redo support
-- 🌐 Multi-language support
+- 🌐 Multi-language support (Turkish, English)
 - 💻 Cross-platform compatibility
 - ⌨️ Keyboard shortcuts
+- 🖥️ Multi-window support
+- 🎯 Precise drawing control
+- 📱 Touch screen support
 
 ## Keyboard Shortcuts
 
 - `Ctrl + Shift + D`: Toggle drawing mode
 - `Ctrl + Q`: Close application
+- `Ctrl + Z`: Undo last action
+- `Ctrl + Y`: Redo last action
+- `Ctrl + S`: Save drawing
+- `Ctrl + O`: Open drawing
+- `Ctrl + N`: New drawing
 
 ## Installation
 
 ### Windows
-1. Download `ePen-Setup.exe` from the [Releases](https://github.com/yourusername/epen/releases) page
+1. Download `ePen-Setup.exe` from the [Releases](https://github.com/omercanga/epen/releases) page
 2. Run the downloaded file and follow installation steps
 
 ### macOS
-1. Download `ePen.dmg` from the [Releases](https://github.com/yourusername/epen/releases) page
+1. Download `ePen.dmg` from the [Releases](https://github.com/omercanga/epen/releases) page
 2. Open the DMG file and drag ePen to Applications folder
 
 ### Linux
-1. Download `ePen.AppImage` from the [Releases](https://github.com/yourusername/epen/releases) page
+1. Download `ePen.AppImage` from the [Releases](https://github.com/omercanga/epen/releases) page
 2. Make it executable: `chmod +x ePen.AppImage`
 3. Run the application: `./ePen.AppImage`
 
 ### Android
 1. Download "ePen" from Google Play Store
-2. Or download and install the APK from [Releases](https://github.com/yourusername/epen/releases) page
+2. Or download and install the APK from [Releases](https://github.com/omercanga/epen/releases) page
 
 ## Development
 
@@ -130,7 +159,7 @@ ePen is a cross-platform application that allows you to draw on your screen. It 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/epen.git
+git clone https://github.com/omercanga/epen.git
 cd epen
 
 # Install dependencies
@@ -144,6 +173,19 @@ npm run build:windows  # For Windows
 npm run build:mac     # For macOS
 npm run build:linux   # For Linux
 npm run build:android # For Android
+```
+
+## Project Structure
+
+```
+epen/
+├── main.js           # Main application file
+├── renderer.js       # Renderer operations
+├── index.html        # Main window HTML
+├── styles.css        # Style file
+├── translations.js   # Translation file
+├── package.json      # Project dependencies
+└── README.md         # Project documentation
 ```
 
 ## Contributing
