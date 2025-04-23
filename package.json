@@ -1,0 +1,61 @@
+{
+  "name": "epen",
+  "version": "1.0.0",
+  "description": "Cross-platform electronic drawing application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --inspect",
+    "build": "electron-builder -mwl",
+    "build:windows": "electron-builder --windows",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^20.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "konva": "^9.3.0",
+    "react-konva": "^18.2.10",
+    "electron-store": "^8.1.0"
+  },
+  "build": {
+    "appId": "com.epen.app",
+    "productName": "ePen",
+    "copyright": "Copyright © 2024",
+    "mac": {
+      "category": "public.app-category.graphics-design",
+      "target": ["dmg", "zip"],
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "build/icon.png",
+      "category": "Graphics"
+    },
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/epen.git"
+  },
+  "keywords": [
+    "electron",
+    "drawing",
+    "pen",
+    "cross-platform"
+  ]
+} 
