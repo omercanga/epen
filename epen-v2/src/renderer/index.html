@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ePen</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; background: transparent; }
+    #canvas { display: block; background: transparent; position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+    /* Kompakt title bar */
+    #titleBar {
+      position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+      padding: 3px 8px 4px; background: rgba(255,255,255,0.92); border-radius: 0 0 6px 6px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.12); display: flex; gap: 8px; align-items: center;
+      z-index: 1001; pointer-events: auto; transition: opacity 0.2s, background 0.2s;
+    }
+    #titleBar .title-name { font-weight: 600; font-size: 12px; }
+    #titleBar.passive { background: rgba(255,255,255,0.3); box-shadow: none; }
+    .shortcut-info { font-size: 10px; color: #666; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .shortcut-info .sep { color: #bbb; margin: 0 1px; }
+    .shortcut-key { background: rgba(0,0,0,0.07); padding: 1px 4px; border-radius: 3px; font-size: 10px; }
+    #closeButton {
+      background: #e53935; color: #fff; border: none; padding: 2px 6px; border-radius: 4px;
+      cursor: pointer; font-size: 12px; pointer-events: auto; line-height: 1.2;
+    }
+    #closeButton:hover { background: #c62828; }
+    /* Kompakt toolbar - ikon ağırlıklı, az yer kaplar */
+    #toolbar {
+      position: fixed; top: 28px; left: 50%; transform: translateX(-50%);
+      padding: 5px 8px; background: rgba(255,255,255,0.94); border-radius: 6px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.12); display: flex; gap: 6px; align-items: center;
+      z-index: 1000; pointer-events: auto; transition: opacity 0.2s;
+    }
+    #toolbar.hidden { opacity: 0; pointer-events: none; }
+    .tool-group { display: flex; gap: 3px; align-items: center; border-right: 1px solid #e8e8e8; padding: 0 6px 0 0; margin-right: 2px; }
+    .tool-group:last-child { border-right: none; padding-right: 0; margin-right: 0; }
+    #toolbar button {
+      padding: 4px 6px; border: 1px solid #e0e0e0; border-radius: 4px; background: #fff;
+      cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 11px; pointer-events: auto;
+    }
+    #toolbar button:hover { background: #f5f5f5; border-color: #ccc; }
+    #toolbar button.active { background: #e3f2fd; border-color: #2196f3; color: #1976d2; }
+    .tool-icon { width: 14px; height: 14px; flex-shrink: 0; }
+    /* Toolbar’da sadece ikon göster, metni tooltip’e bırak (yer kazanır) */
+    #toolbar button .btn-label { max-width: 0; overflow: hidden; opacity: 0; pointer-events: none; white-space: nowrap; transition: max-width 0.15s, opacity 0.15s; }
+    #toolbar:hover button .btn-label { max-width: 60px; opacity: 1; }
+    .color-palette { display: flex; gap: 2px; align-items: center; }
+    .color-swatch {
+      width: 18px; height: 18px; border-radius: 4px; cursor: pointer; border: 1px solid rgba(0,0,0,0.12);
+      pointer-events: auto;
+    }
+    .color-swatch.active { border-color: #333; box-shadow: 0 0 0 1px #fff; }
+    .color-swatch:hover { transform: scale(1.08); }
+    input[type="range"] { width: 56px; height: 4px; accent-color: #2196f3; }
+    #lineWidthValue { font-size: 10px; color: #666; min-width: 24px; }
+    #status-bar {
+      position: fixed; bottom: 8px; right: 8px; padding: 4px 8px;
+      background: rgba(0,0,0,0.7); color: #fff; border-radius: 4px; font-size: 10px;
+      z-index: 999; pointer-events: none; transition: opacity 0.2s;
+    }
+    #status-bar.passive { opacity: 0; }
+    #status-bar b { color: #81c784; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="titleBar">
+    <span class="title-name">ePen</span>
+    <span class="shortcut-info">
+      <span class="shortcut-key" id="drawingShortcut" title="Drawing mode">Ctrl+Shift+D</span>
+      <span class="sep">·</span>
+      <span class="shortcut-key" id="closeShortcut" title="Close">Ctrl+Q</span>
+      <span class="sep">·</span>
+      <span class="shortcut-key" id="nextDisplayShortcut" title="Next display">Ctrl+Shift+M</span>
+    </span>
+    <button id="closeButton" type="button" title="Close">✕</button>
+  </div>
+  <div id="toolbar">
+    <div class="tool-group">
+      <button type="button" id="penTool" class="active" data-i18n="pen" title="Pen">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0L15.12 5.12 18.87 8.87l2.84-1.83M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+        <span class="btn-label" data-i18n="pen">Pen</span>
+      </button>
+      <button type="button" id="highlighterTool" data-i18n="highlighter" title="Highlighter">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 1.15c-.53 0-1.04.19-1.43.58L11.26 7.54 16.91 13.19 22.72 7.38c.78-.78.78-2.06 0-2.84L19.89 1.73c-.39-.39-.9-.58-1.39-.58M10.3 8.5L4.34 14.46c-.78.78-.78 2.06 0 2.84l2.35 2.35c.78.78 2.06.78 2.84 0L15.49 13.69"/></svg>
+        <span class="btn-label" data-i18n="highlighter">Highlighter</span>
+      </button>
+      <button type="button" id="eraserTool" data-i18n="eraser" title="Eraser">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53c-.78.78-2.02.78-2.81 0L2.81 17c-.78-.79-.78-2.05 0-2.84l9.6-9.6c.79-.78 2.05-.78 2.84 0M4.22 15.58l3.54 3.53.78-.78-3.53-3.54-1.79 1.79z"/></svg>
+        <span class="btn-label" data-i18n="eraser">Eraser</span>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button type="button" id="lineTool" data-i18n="line" title="Line">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M15 3v4.59L7.59 15H3v6h6v-4.58L16.42 9H21V3m-4 2h2v2h-2M5 17h2v2H5z"/></svg>
+        <span class="btn-label" data-i18n="line">Line</span>
+      </button>
+      <button type="button" id="rectangleTool" data-i18n="rectangle" title="Rectangle">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h6v2H4v2H2V4m20 4V8h-2V6h-4v2h2m2 16v-4h-2v2h-4v2h6M2 16h2v2h4v2H2v-4m0-2v-2h2v2H2z"/></svg>
+        <span class="btn-label" data-i18n="rectangle">Rectangle</span>
+      </button>
+      <button type="button" id="circleTool" data-i18n="circle" title="Circle">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2z"/></svg>
+        <span class="btn-label" data-i18n="circle">Circle</span>
+      </button>
+    </div>
+    <div class="tool-group color-palette">
+      <div class="color-swatch" style="background:#000" data-color="#000000" title="Black"></div>
+      <div class="color-swatch active" style="background:#f44336" data-color="#ff0000" title="Red"></div>
+      <div class="color-swatch" style="background:#4caf50" data-color="#00ff00" title="Green"></div>
+      <div class="color-swatch" style="background:#2196f3" data-color="#0000ff" title="Blue"></div>
+      <div class="color-swatch" style="background:#fff; border:1px solid #ccc" data-color="custom" title="Custom">
+        <input type="color" id="colorPicker" value="#ff0000" style="opacity:0; width:100%; height:100%; cursor:pointer; position:absolute; inset:0;">
+      </div>
+    </div>
+    <div class="tool-group">
+      <input type="range" id="lineWidth" min="1" max="20" value="6" title="Line width">
+      <span id="lineWidthValue">6px</span>
+    </div>
+    <div class="tool-group">
+      <button type="button" id="undoButton" data-i18n="undo" title="Undo">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.47-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+        <span class="btn-label" data-i18n="undo">Undo</span>
+      </button>
+      <button type="button" id="redoButton" data-i18n="redo" title="Redo">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.4 10.6C16.55 9 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg>
+        <span class="btn-label" data-i18n="redo">Redo</span>
+      </button>
+      <button type="button" id="clearButton" data-i18n="clear" title="Clear">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12z"/></svg>
+        <span class="btn-label" data-i18n="clear">Clear</span>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button type="button" id="toggleDrawingMode" data-i18n="toggleDrawing" title="Toggle Drawing Mode">
+        <svg class="tool-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0L15.12 5.12 18.87 8.87l2.84-1.83M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+        <span class="btn-label" data-i18n="toggleDrawing">Toggle</span>
+      </button>
+    </div>
+  </div>
+  <canvas id="canvas"></canvas>
+  <div id="status-bar">
+    <span data-i18n="drawMode">Drawing Mode</span>: <b data-i18n="active">Active</b>
+  </div>
+  <script src="state.js"></script>
+  <script src="i18n.js"></script>
+  <script src="canvas.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
