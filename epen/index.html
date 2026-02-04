@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>ePen</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background: transparent;
+      }
+      canvas {
+        display: block;
+        background: transparent;
+        pointer-events: auto;
+      }
+      #toolbar {
+        position: fixed;
+        top: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        z-index: 1000;
+        white-space: nowrap;
+        pointer-events: auto !important;
+        transition: all 0.3s ease;
+      }
+      #toolbar.hidden {
+        opacity: 0;
+        pointer-events: none !important;
+      }
+      .tool-group {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        padding: 5px;
+        border-right: 1px solid #ddd;
+      }
+      .tool-group:last-child {
+        border-right: none;
+      }
+      button {
+        padding: 5px 10px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        background: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        pointer-events: auto !important;
+      }
+      button:hover {
+        background: #f0f0f0;
+      }
+      button.active {
+        background: #e0e0e0;
+      }
+      .color-palette {
+        display: flex;
+        gap: 3px;
+      }
+      .color-swatch {
+        width: 20px;
+        height: 20px;
+        border-radius: 3px;
+        cursor: pointer;
+        border: 1px solid #ddd;
+      }
+      input[type="range"] {
+        width: 80px;
+      }
+      #status-bar {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border-radius: 3px;
+        font-size: 12px;
+        z-index: 9999;
+        pointer-events: none;
+        transition: all 0.3s ease;
+      }
+      #status-bar.passive {
+        opacity: 0;
+      }
+      #status-bar b {
+        color: #00ff00;
+        font-weight: bold;
+      }
+      .hidden {
+        display: none !important;
+      }
+      #titleBar {
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 5px 10px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 0 0 5px 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        z-index: 9999;
+        pointer-events: auto !important;
+        transition: all 0.3s ease;
+      }
+      #titleBar.passive {
+        background: rgba(255, 255, 255, 0.3);
+        box-shadow: none;
+      }
+      #titleBar, #closeButton {
+        pointer-events: auto !important;
+      }
+      .shortcut-info {
+        font-size: 13px;
+        color: #ff3333;
+        margin-left: 5px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-weight: bold;
+        text-shadow: 0 0 1px rgba(255,0,0,0.2);
+        pointer-events: auto !important;
+      }
+      .shortcut-key {
+        background: rgba(255, 51, 51, 0.1);
+        padding: 2px 6px;
+        border-radius: 3px;
+        border: 1px solid rgba(255, 51, 51, 0.2);
+        pointer-events: auto !important;
+      }
+      .shortcut-divider {
+        color: #999;
+        margin: 0 5px;
+        font-weight: normal;
+        pointer-events: auto !important;
+      }
+      button .shortcut-text {
+        display: inline-block;
+        vertical-align: middle;
+        pointer-events: auto !important;
+      }
+      #closeButton {
+        background: #ff4444;
+        color: white;
+        border: none;
+        padding: 3px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        pointer-events: auto !important;
+      }
+      #closeButton:hover {
+        background: #ff0000;
+      }
+      .tool-icon {
+        width: 16px;
+        height: 16px;
+      }
+      .keyboard-shortcut {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="titleBar">
+      <span>ePen</span>
+      <span class="shortcut-info">
+        <span data-i18n="drawMode">Çizim</span>: <span class="shortcut-key" id="drawingShortcut">⌘+Shift+D</span>
+        <span class="shortcut-divider">|</span>
+        <span data-i18n="close">Kapat</span>: <span class="shortcut-key" id="closeShortcut">⌘+Q</span>
+      </span>
+      <button id="closeButton">✕</button>
+    </div>
+    <div id="toolbar">
+      <div class="tool-group">
+        <button id="penTool" class="active" data-i18n="pen">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
+          <span data-i18n="pen"></span>
+        </button>
+        <button id="highlighterTool" data-i18n="highlighter">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M18.5,1.15C17.97,1.15 17.46,1.34 17.07,1.73L11.26,7.54L16.91,13.19L22.72,7.38C23.5,6.6 23.5,5.32 22.72,4.54L19.89,1.73C19.5,1.34 19,1.15 18.5,1.15M10.3,8.5L4.34,14.46C3.56,15.24 3.56,16.52 4.34,17.3L6.69,19.65C7.47,20.43 8.75,20.43 9.53,19.65L15.49,13.69"/></svg>
+          <span data-i18n="highlighter"></span>
+        </button>
+        <button id="eraserTool" data-i18n="eraser">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M16.24,3.56L21.19,8.5C21.97,9.29 21.97,10.55 21.19,11.34L12,20.53C10.44,22.09 7.91,22.09 6.34,20.53L2.81,17C2.03,16.21 2.03,14.95 2.81,14.16L13.41,3.56C14.2,2.78 15.46,2.78 16.24,3.56M4.22,15.58L7.76,19.11C8.54,19.9 9.8,19.9 10.59,19.11L14.12,15.58L9.17,10.63L4.22,15.58Z"/></svg>
+          <span data-i18n="eraser"></span>
+        </button>
+      </div>
+      <div class="tool-group">
+        <button id="lineTool" data-i18n="line">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M15,3V7.59L7.59,15H3V21H9V16.42L16.42,9H21V3M17,5H19V7H17M5,17H7V19H5"/></svg>
+          <span data-i18n="line"></span>
+        </button>
+        <button id="rectangleTool" data-i18n="rectangle">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M2,4H8V6H4V8H2V4M22,4V8H20V6H16V4H22M2,16V20H8V18H4V16H2M20,16V18H16V20H22V16H20"/></svg>
+          <span data-i18n="rectangle"></span>
+        </button>
+        <button id="circleTool" data-i18n="circle">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/></svg>
+          <span data-i18n="circle"></span>
+        </button>
+      </div>
+      <div class="tool-group color-palette">
+        <div class="color-swatch" style="background: black;" data-color="#000000"></div>
+        <div class="color-swatch active" style="background: red;" data-color="#ff0000"></div>
+        <div class="color-swatch" style="background: lime;" data-color="#00ff00"></div>
+        <div class="color-swatch" style="background: blue;" data-color="#0000ff"></div>
+        <div class="color-swatch custom-color" style="background: white;" data-color="custom">
+          <input type="color" id="colorPicker" value="#ff0000" style="opacity: 0; width: 100%; height: 100%; cursor: pointer;">
+        </div>
+      </div>
+      <div class="tool-group">
+        <input type="range" id="lineWidth" min="1" max="20" value="6">
+        <span id="lineWidthValue">6px</span>
+      </div>
+      <div class="tool-group">
+        <button id="undoButton" data-i18n="undo">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z"/></svg>
+          <span data-i18n="undo"></span>
+        </button>
+        <button id="redoButton" data-i18n="redo">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M18.4,10.6C16.55,9 14.15,8 11.5,8C6.85,8 2.92,11.03 1.54,15.22L3.9,16C4.95,12.81 7.95,10.5 11.5,10.5C13.45,10.5 15.23,11.22 16.62,12.38L13,16H22V7L18.4,10.6Z"/></svg>
+          <span data-i18n="redo"></span>
+        </button>
+        <button id="clearButton" data-i18n="clear">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+          <span data-i18n="clear"></span>
+        </button>
+      </div>
+      <div class="tool-group">
+        <button id="toggleDrawingMode" data-i18n="toggleDrawing">
+          <svg class="tool-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
+          <span data-i18n="toggleDrawing"></span>
+        </button>
+      </div>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div id="status-bar">
+      <span data-i18n="drawMode">Çizim Modu</span>: <b data-i18n="active">Aktif</b>
+    </div>
+    <script>
+      const { ipcRenderer } = require('electron');
+      const translations = require('./translations.js');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const tools = {
+        pen: document.getElementById('penTool'),
+        highlighter: document.getElementById('highlighterTool'),
+        eraser: document.getElementById('eraserTool'),
+        line: document.getElementById('lineTool'),
+        rect: document.getElementById('rectangleTool'),
+        circle: document.getElementById('circleTool')
+      };
+      const colorPicker = document.getElementById('colorPicker');
+      const sizeSlider = document.getElementById('lineWidth');
+      const sizeValue = document.getElementById('lineWidthValue');
+      const statusBar = document.getElementById('status-bar');
+      const toolbar = document.getElementById('toolbar');
+      
+      let currentTool = 'pen';
+      let isDrawing = false;
+      let isDrawMode = true;
+      let lastX = 0;
+      let lastY = 0;
+      let startX = 0;
+      let startY = 0;
+      let history = [];
+      let redoHistory = [];
+      let snapshot;
+      let currentLanguage = 'tr';
+
+      // Load initial language
+      ipcRenderer.invoke('get-language').then(lang => {
+        currentLanguage = lang;
+        updateTranslations();
+      });
+
+      // Listen for language changes
+      ipcRenderer.on('change-language', (event, lang) => {
+        currentLanguage = lang;
+        updateTranslations();
+      });
+
+      // Function to update all translations
+      function updateTranslations() {
+        const elements = document.querySelectorAll('[data-i18n]');
+        elements.forEach(element => {
+          const key = element.getAttribute('data-i18n');
+          if (translations[currentLanguage][key]) {
+            if (element.tagName === 'BUTTON') {
+              // For buttons, update the span inside if it exists
+              const span = element.querySelector('span');
+              if (span) {
+                span.textContent = translations[currentLanguage][key];
+              } else {
+                element.textContent = translations[currentLanguage][key];
+              }
+            } else {
+          element.textContent = translations[currentLanguage][key];
+            }
+          }
+        });
+      }
+
+      // Toggle draw mode
+      function toggleDrawMode(isActive) {
+        isDrawMode = isActive;
+        const status = isDrawMode ? translations[currentLanguage].active : translations[currentLanguage].inactive;
+        const shortcut = ' (Ctrl+Shift+D)';
+        statusBar.innerHTML = `${translations[currentLanguage].drawMode}: <b>${status}</b>${shortcut}`;
+        toolbar.classList.toggle('hidden', !isDrawMode);
+        document.getElementById('titleBar').classList.toggle('passive', !isDrawMode);
+        statusBar.classList.toggle('passive', !isDrawMode);
+      }
+
+      // Initialize canvas with transparent background
+      function initCanvas() {
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        saveState();
+      }
+
+      // Set canvas size and initialize
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        initCanvas();
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      document.getElementById('toggleDrawingMode').addEventListener('click', () => {
+        ipcRenderer.send('toggle-drawing-mode');
+      });
+
+      ipcRenderer.on('drawing-mode-changed', (event, isActive) => {
+        toggleDrawMode(isActive);
+      });
+
+      // Handle close button
+      document.getElementById('closeButton').addEventListener('click', () => {
+        ipcRenderer.send('close-window');
+      });
+
+      // Handle Ctrl+Q shortcut
+      document.addEventListener('keydown', (e) => {
+        // Check for both Ctrl and Command (Meta) key
+        if (e.ctrlKey || e.metaKey) {
+          if (e.key === 'z') {
+            e.preventDefault();
+            undo();
+          } else if (e.key === 'y') {
+            e.preventDefault();
+            redo();
+          } else if (e.key === 'q') {
+            e.preventDefault();
+            window.close();
+          } else if (e.key === 'd') {
+            e.preventDefault();
+            ipcRenderer.send('toggle-drawing-mode');
+          }
+        } else {
+          switch (e.key.toLowerCase()) {
+            case 'p':
+              currentTool = 'pen';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('penTool').classList.add('active');
+              break;
+            case 'e':
+              currentTool = 'eraser';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('eraserTool').classList.add('active');
+              break;
+            case 'l':
+              currentTool = 'line';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('lineTool').classList.add('active');
+              break;
+            case 'r':
+              currentTool = 'rectangle';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('rectangleTool').classList.add('active');
+              break;
+            case 'c':
+              currentTool = 'circle';
+              document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+              document.getElementById('circleTool').classList.add('active');
+              break;
+          }
+        }
+      });
+
+      // Initialize drawing mode
+      ipcRenderer.on('init-drawing-mode', (event, isActive) => {
+        toggleDrawMode(isActive);
+      });
+
+      // Tool selection
+      Object.keys(tools).forEach(tool => {
+        tools[tool].addEventListener('click', () => {
+          Object.values(tools).forEach(btn => btn.classList.remove('active'));
+          tools[tool].classList.add('active');
+          currentTool = tool;
+        });
+      });
+
+      // Color swatches
+      document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+          const color = swatch.dataset.color;
+          colorPicker.value = color;
+        });
+      });
+
+      // Size and opacity sliders
+      sizeSlider.addEventListener('input', () => {
+        sizeValue.textContent = sizeSlider.value + 'px';
+      });
+
+      function saveState() {
+        history.push(canvas.toDataURL());
+        redoHistory = [];
+      }
+
+      function undo() {
+        if (history.length > 0) {
+          redoHistory.push(canvas.toDataURL());
+          const img = new Image();
+          img.src = history.pop();
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+          };
+        }
+      }
+
+      function redo() {
+        if (redoHistory.length > 0) {
+          history.push(canvas.toDataURL());
+          const img = new Image();
+          img.src = redoHistory.pop();
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+          };
+        }
+      }
+
+      function startDrawing(e) {
+        if (!isDrawMode) return;
+        isDrawing = true;
+        [lastX, lastY] = [e.clientX, e.clientY];
+        [startX, startY] = [e.clientX, e.clientY];
+        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      }
+
+      function draw(e) {
+        if (!isDrawMode || !isDrawing) return;
+
+        ctx.lineWidth = sizeSlider.value;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        const opacity = 1;
+
+        if (currentTool === 'eraser') {
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.strokeStyle = 'rgba(0,0,0,1)';
+        } else {
+          ctx.globalCompositeOperation = 'source-over';
+          if (currentTool === 'highlighter') {
+            ctx.globalAlpha = 0.3;
+            ctx.strokeStyle = colorPicker.value;
+          } else {
+            ctx.globalAlpha = opacity;
+            ctx.strokeStyle = colorPicker.value;
+          }
+        }
+
+        if (currentTool === 'pen' || currentTool === 'eraser' || currentTool === 'highlighter') {
+          ctx.beginPath();
+          ctx.moveTo(lastX, lastY);
+          ctx.lineTo(e.clientX, e.clientY);
+          ctx.stroke();
+          [lastX, lastY] = [e.clientX, e.clientY];
+        } else {
+          ctx.putImageData(snapshot, 0, 0);
+          ctx.beginPath();
+          
+          if (currentTool === 'line') {
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(e.clientX, e.clientY);
+          } else if (currentTool === 'rect') {
+            const width = e.clientX - startX;
+            const height = e.clientY - startY;
+            ctx.rect(startX, startY, width, height);
+          } else if (currentTool === 'circle') {
+            const radius = Math.sqrt(
+              Math.pow(e.clientX - startX, 2) + 
+              Math.pow(e.clientY - startY, 2)
+            );
+            ctx.arc(startX, startY, radius, 0, Math.PI * 2);
+          }
+          
+          ctx.stroke();
+        }
+      }
+
+      function stopDrawing() {
+        if (isDrawing) {
+          isDrawing = false;
+          ctx.globalAlpha = 1;
+          saveState();
+        }
+      }
+
+      function redrawCanvas() {
+        if (history.length > 0) {
+          const img = new Image();
+          img.src = history[history.length - 1];
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+          };
+        }
+      }
+
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('mouseout', stopDrawing);
+
+      document.getElementById('clearButton').addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        saveState();
+      });
+
+      document.getElementById('undoButton').addEventListener('click', undo);
+      document.getElementById('redoButton').addEventListener('click', redo);
+
+      // Save initial state
+      saveState();
+
+      // Update shortcuts based on OS
+      function updateShortcuts() {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const drawingShortcut = document.getElementById('drawingShortcut');
+        const closeShortcut = document.getElementById('closeShortcut');
+        
+        if (isMac) {
+          drawingShortcut.textContent = '⌘D';
+          closeShortcut.textContent = '⌘Q';
+        } else {
+          drawingShortcut.textContent = 'Ctrl+Shift+D';
+          closeShortcut.textContent = 'Ctrl+Q';
+        }
+      }
+
+      // Call updateShortcuts when the page loads
+      document.addEventListener('DOMContentLoaded', updateShortcuts);
+    </script>
+  </body>
+</html> 
